@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de edición — ADOE Automotores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a0a5c; --navy-deep: #06063e;
+    --gray-050: #f6f7f9; --gray-150: #ebedf1; --gray-300: #d3d7de;
+    --gray-500: #8b90a0; --gray-700: #4b4f5e; --white: #ffffff;
+    --danger: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Inter',sans-serif; background:var(--gray-050); color:var(--navy-deep); }
+  h1,h2,h3 { font-family:'Space Grotesk',sans-serif; margin:0; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px 80px; }
+  header { background:var(--navy-deep); color:#fff; padding:18px 20px; display:flex; align-items:center; justify-content:space-between; }
+  header h1 { font-size: 1.1rem; }
+  header a { color:#c3c6e6; font-size:0.85rem; text-decoration:none; }
+
+  /* Login */
+  .login-box { max-width: 380px; margin: 90px auto; background:#fff; border:1px solid var(--gray-150); border-radius:6px; padding:32px; }
+  .login-box h2 { font-size:1.3rem; margin-bottom:6px; }
+  .login-box p { color:var(--gray-500); font-size:0.9rem; margin-top:0; }
+  label { display:block; font-size:0.85rem; font-weight:600; margin:14px 0 6px; }
+  input, select { width:100%; padding:10px 12px; border:1px solid var(--gray-300); border-radius:4px; font-size:0.95rem; font-family:inherit; }
+  button { cursor:pointer; font-family:inherit; }
+  .btn { background:var(--navy); color:#fff; border:none; padding:11px 20px; border-radius:4px; font-weight:600; font-size:0.92rem; }
+  .btn:hover { background:var(--navy-deep); }
+  .btn-danger { background:none; color:var(--danger); border:1px solid var(--danger); padding:7px 12px; border-radius:4px; font-size:0.82rem; font-weight:600; }
+  .error-msg { color:var(--danger); font-size:0.85rem; margin-top:10px; min-height: 1em; }
+
+  /* Panel */
+  .panel-hidden { display:none; }
+  .card { background:#fff; border:1px solid var(--gray-150); border-radius:6px; padding:22px; margin-bottom:24px; }
+  .field-row { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+  @media (max-width:600px){ .field-row{ grid-template-columns: 1fr; } }
+  .car-list-item { display:flex; gap:14px; align-items:center; border:1px solid var(--gray-150); border-radius:5px; padding:12px; margin-bottom:10px; }
+  .car-list-item img, .car-list-item .no-photo { width:64px; height:48px; object-fit:cover; border-radius:3px; background:var(--gray-150); flex-shrink:0; }
+  .car-list-info { flex:1; }
+  .car-list-info strong { font-size:0.95rem; }
+  .car-list-info span { display:block; color:var(--gray-500); font-size:0.82rem; margin-top:2px; }
+  .status-msg { font-size:0.85rem; margin-top:10px; min-height:1em; }
+  .status-ok { color: #1a7a3d; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ADOE Automotores — Panel de edición</h1>
+  <div>
+    <a href="index.html">Ver catálogo público</a>
+    <a href="#" id="logout-link" style="margin-left:16px; display:none;">Cerrar sesión</a>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="login-box" id="login-box">
+    <h2>Iniciar sesión</h2>
+    <p>Ingresá con el usuario del catálogo.</p>
+    <label for="login-email">Email</label>
+    <input type="email" id="login-email" autocomplete="username">
+    <label for="login-pass">Contraseña</label>
+    <input type="password" id="login-pass" autocomplete="current-password">
+    <div style="margin-top:18px;">
+      <button class="btn" id="login-btn">Entrar</button>
+    </div>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+
+  <div id="panel" class="panel-hidden">
+
+    <div class="card">
+      <h3 style="margin-bottom:14px;">Agregar auto</h3>
+      <div class="field-row">
+        <div><label>Marca</label><input id="f-marca" placeholder="Toyota"></div>
+        <div><label>Modelo</label><input id="f-modelo" placeholder="Corolla XEI"></div>
+      </div>
+      <div class="field-row">
+        <div><label>Año</label><input id="f-anio" type="number" placeholder="2021"></div>
+        <div><label>Kilómetros</label><input id="f-km" type="number" placeholder="41000"></div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label>Combustible</label>
+          <select id="f-combustible">
+            <option>Nafta</option><option>Diésel</option><option>GNC</option><option>Híbrido</option><option>Eléctrico</option>
+          </select>
+        </div>
+        <div><label>Precio ($)</label><input id="f-precio" type="number" placeholder="14800000"></div>
+      </div>
+      <label>Foto</label>
+      <input type="file" id="f-foto" accept="image/*">
+      <div style="margin-top:18px;">
+        <button class="btn" id="add-btn">Agregar al catálogo</button>
+      </div>
+      <div class="status-msg" id="add-status"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:14px;">Autos publicados</h3>
+      <div id="car-list"><p style="color:var(--gray-500);">Cargando...</p></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.1/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.1/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.14.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDGYGu-idFiDm_15qocYGPZh04lZnCNNas",
+    authDomain: "adoeautomotores.firebaseapp.com",
+    projectId: "adoeautomotores",
+    storageBucket: "adoeautomotores.firebasestorage.app",
+    messagingSenderId: "890725170626",
+    appId: "1:890725170626:web:464f48f7cfb07ae90b2a5b"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const loginBox = document.getElementById('login-box');
+  const panel = document.getElementById('panel');
+  const logoutLink = document.getElementById('logout-link');
+
+  document.getElementById('login-btn').addEventListener('click', function () {
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    const errBox = document.getElementById('login-error');
+    errBox.textContent = '';
+    auth.signInWithEmailAndPassword(email, pass).catch(function (err) {
+      errBox.textContent = 'No se pudo ingresar: revisá el email y la contraseña.';
+      console.error(err);
+    });
+  });
+
+  logoutLink.addEventListener('click', function (e) {
+    e.preventDefault();
+    auth.signOut();
+  });
+
+  let unsubscribeList = null;
+
+  auth.onAuthStateChanged(function (user) {
+    if (user) {
+      loginBox.classList.add('panel-hidden');
+      panel.classList.remove('panel-hidden');
+      logoutLink.style.display = 'inline';
+      if (!unsubscribeList) unsubscribeList = escucharAutos();
+    } else {
+      loginBox.classList.remove('panel-hidden');
+      panel.classList.add('panel-hidden');
+      logoutLink.style.display = 'none';
+      if (unsubscribeList) { unsubscribeList(); unsubscribeList = null; }
+    }
+  });
+
+  // Comprime la imagen en el navegador y la devuelve como data URL (base64)
+  function comprimirImagen(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          const maxAncho = 900;
+          const escala = Math.min(1, maxAncho / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * escala;
+          canvas.height = img.height * escala;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.72));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('add-btn').addEventListener('click', async function () {
+    const status = document.getElementById('add-status');
+    const btn = document.getElementById('add-btn');
+    const marca = document.getElementById('f-marca').value.trim();
+    const modelo = document.getElementById('f-modelo').value.trim();
+    const anio = document.getElementById('f-anio').value.trim();
+    const km = document.getElementById('f-km').value.trim();
+    const combustible = document.getElementById('f-combustible').value;
+    const precio = document.getElementById('f-precio').value.trim();
+    const fotoInput = document.getElementById('f-foto');
+
+    if (!marca || !modelo || !anio || !precio) {
+      status.textContent = 'Completá al menos marca, modelo, año y precio.';
+      status.className = 'status-msg';
+      return;
+    }
+
+    btn.disabled = true;
+    status.textContent = 'Guardando...';
+    status.className = 'status-msg';
+
+    try {
+      let foto = null;
+      if (fotoInput.files && fotoInput.files[0]) {
+        foto = await comprimirImagen(fotoInput.files[0]);
+      }
+      await db.collection('cars').add({
+        marca: marca, modelo: modelo, anio: anio, km: km,
+        combustible: combustible, precio: precio, foto: foto,
+        creado: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      status.textContent = 'Auto agregado ✓';
+      status.className = 'status-msg status-ok';
+      document.getElementById('f-marca').value = '';
+      document.getElementById('f-modelo').value = '';
+      document.getElementById('f-anio').value = '';
+      document.getElementById('f-km').value = '';
+      document.getElementById('f-precio').value = '';
+      fotoInput.value = '';
+    } catch (err) {
+      console.error(err);
+      status.textContent = 'No se pudo guardar. Probá de nuevo.';
+      status.className = 'status-msg';
+    }
+    btn.disabled = false;
+  });
+
+  function escucharAutos() {
+    const list = document.getElementById('car-list');
+    return db.collection('cars').orderBy('creado', 'desc').onSnapshot(function (snapshot) {
+      if (snapshot.empty) {
+        list.innerHTML = '<p style="color:var(--gray-500);">Todavía no cargaste ningún auto.</p>';
+        return;
+      }
+      list.innerHTML = '';
+      snapshot.forEach(function (doc) {
+        const c = doc.data();
+        const item = document.createElement('div');
+        item.className = 'car-list-item';
+        const fotoHtml = c.foto
+          ? '<img src="' + c.foto + '">'
+          : '<div class="no-photo"></div>';
+        item.innerHTML =
+          fotoHtml +
+          '<div class="car-list-info">' +
+            '<strong>' + c.marca + ' ' + c.modelo + '</strong>' +
+            '<span>' + c.anio + ' · ' + (c.km || '0') + ' km · $' + Number(c.precio || 0).toLocaleString('es-AR') + '</span>' +
+          '</div>' +
+          '<button class="btn-danger" data-id="' + doc.id + '">Eliminar</button>';
+        list.appendChild(item);
+      });
+      list.querySelectorAll('.btn-danger').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (confirm('¿Eliminar este auto del catálogo?')) {
+            db.collection('cars').doc(b.getAttribute('data-id')).delete();
+          }
+        });
+      });
+    });
+  }
+</script>
+</body>
+</html>
