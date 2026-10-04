@@ -30,21 +30,26 @@
   button { cursor:pointer; font-family:inherit; }
   .btn { background:var(--navy); color:#fff; border:none; padding:11px 20px; border-radius:4px; font-weight:600; font-size:0.92rem; }
   .btn:hover { background:var(--navy-deep); }
+  .btn-secondary { background:none; color:var(--gray-700); border:1px solid var(--gray-300); padding:10px 20px; border-radius:4px; font-weight:600; font-size:0.92rem; margin-left:8px; }
+  .btn-edit { background:none; color:var(--navy); border:1px solid var(--navy); padding:7px 12px; border-radius:4px; font-size:0.82rem; font-weight:600; }
   .btn-danger { background:none; color:var(--danger); border:1px solid var(--danger); padding:7px 12px; border-radius:4px; font-size:0.82rem; font-weight:600; }
   .error-msg { color:var(--danger); font-size:0.85rem; margin-top:10px; min-height: 1em; }
 
   /* Panel */
   .panel-hidden { display:none; }
   .card { background:#fff; border:1px solid var(--gray-150); border-radius:6px; padding:22px; margin-bottom:24px; }
+  .card.editando { border-color: var(--navy); box-shadow: 0 0 0 2px rgba(10,10,92,0.12); }
   .field-row { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
   @media (max-width:600px){ .field-row{ grid-template-columns: 1fr; } }
-  .car-list-item { display:flex; gap:14px; align-items:center; border:1px solid var(--gray-150); border-radius:5px; padding:12px; margin-bottom:10px; }
+  .car-list-item { display:flex; gap:14px; align-items:center; border:1px solid var(--gray-150); border-radius:5px; padding:12px; margin-bottom:10px; flex-wrap:wrap; }
   .car-list-item img, .car-list-item .no-photo { width:64px; height:48px; object-fit:cover; border-radius:3px; background:var(--gray-150); flex-shrink:0; }
-  .car-list-info { flex:1; }
+  .car-list-info { flex:1; min-width:140px; }
   .car-list-info strong { font-size:0.95rem; }
   .car-list-info span { display:block; color:var(--gray-500); font-size:0.82rem; margin-top:2px; }
+  .car-list-actions { display:flex; gap:8px; }
   .status-msg { font-size:0.85rem; margin-top:10px; min-height:1em; }
   .status-ok { color: #1a7a3d; }
+  .hint { color:var(--gray-500); font-size:0.8rem; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -74,8 +79,8 @@
 
   <div id="panel" class="panel-hidden">
 
-    <div class="card">
-      <h3 style="margin-bottom:14px;">Agregar auto</h3>
+    <div class="card" id="form-card">
+      <h3 style="margin-bottom:14px;" id="form-title">Agregar auto</h3>
       <div class="field-row">
         <div><label>Marca</label><input id="f-marca" placeholder="Toyota"></div>
         <div><label>Modelo</label><input id="f-modelo" placeholder="Corolla XEI"></div>
@@ -95,8 +100,10 @@
       </div>
       <label>Fotos (podés elegir varias a la vez, hasta 5)</label>
       <input type="file" id="f-foto" accept="image/*" multiple>
+      <div class="hint" id="foto-hint" style="display:none;">Si no elegís fotos nuevas, se mantienen las que ya tiene el auto. Si elegís nuevas, reemplazan a las anteriores.</div>
       <div style="margin-top:18px;">
         <button class="btn" id="add-btn">Agregar al catálogo</button>
+        <button class="btn-secondary" id="cancel-btn" style="display:none;">Cancelar edición</button>
       </div>
       <div class="status-msg" id="add-status"></div>
     </div>
@@ -128,6 +135,10 @@
   const loginBox = document.getElementById('login-box');
   const panel = document.getElementById('panel');
   const logoutLink = document.getElementById('logout-link');
+
+  // Estado de edición: si hay un id, el botón guarda cambios en ese auto en vez de crear uno nuevo
+  let editandoId = null;
+  const autosCache = {};
 
   document.getElementById('login-btn').addEventListener('click', function () {
     const email = document.getElementById('login-email').value.trim();
@@ -185,6 +196,51 @@
     });
   }
 
+  function limpiarFormulario() {
+    document.getElementById('f-marca').value = '';
+    document.getElementById('f-modelo').value = '';
+    document.getElementById('f-anio').value = '';
+    document.getElementById('f-km').value = '';
+    document.getElementById('f-precio').value = '';
+    document.getElementById('f-combustible').selectedIndex = 0;
+    document.getElementById('f-foto').value = '';
+  }
+
+  function salirModoEdicion() {
+    editandoId = null;
+    document.getElementById('form-title').textContent = 'Agregar auto';
+    document.getElementById('add-btn').textContent = 'Agregar al catálogo';
+    document.getElementById('cancel-btn').style.display = 'none';
+    document.getElementById('foto-hint').style.display = 'none';
+    document.getElementById('form-card').classList.remove('editando');
+  }
+
+  function entrarModoEdicion(id) {
+    const c = autosCache[id];
+    if (!c) return;
+    editandoId = id;
+    document.getElementById('f-marca').value = c.marca || '';
+    document.getElementById('f-modelo').value = c.modelo || '';
+    document.getElementById('f-anio').value = c.anio || '';
+    document.getElementById('f-km').value = c.km || '';
+    document.getElementById('f-precio').value = c.precio || '';
+    document.getElementById('f-combustible').value = c.combustible || 'Nafta';
+    document.getElementById('f-foto').value = '';
+    document.getElementById('form-title').textContent = 'Editar auto: ' + c.marca + ' ' + c.modelo;
+    document.getElementById('add-btn').textContent = 'Guardar cambios';
+    document.getElementById('cancel-btn').style.display = 'inline-block';
+    document.getElementById('foto-hint').style.display = 'block';
+    document.getElementById('form-card').classList.add('editando');
+    document.getElementById('add-status').textContent = '';
+    document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  document.getElementById('cancel-btn').addEventListener('click', function () {
+    salirModoEdicion();
+    limpiarFormulario();
+    document.getElementById('add-status').textContent = '';
+  });
+
   document.getElementById('add-btn').addEventListener('click', async function () {
     const status = document.getElementById('add-status');
     const btn = document.getElementById('add-btn');
@@ -212,19 +268,30 @@
         const archivos = Array.from(fotoInput.files).slice(0, 5);
         fotos = await Promise.all(archivos.map(comprimirImagen));
       }
-      await db.collection('cars').add({
-        marca: marca, modelo: modelo, anio: anio, km: km,
-        combustible: combustible, precio: precio, fotos: fotos,
-        creado: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      status.textContent = 'Auto agregado ✓';
-      status.className = 'status-msg status-ok';
-      document.getElementById('f-marca').value = '';
-      document.getElementById('f-modelo').value = '';
-      document.getElementById('f-anio').value = '';
-      document.getElementById('f-km').value = '';
-      document.getElementById('f-precio').value = '';
-      fotoInput.value = '';
+
+      if (editandoId) {
+        // Modo edición: se actualiza el mismo auto (no se crea uno nuevo)
+        const datos = {
+          marca: marca, modelo: modelo, anio: anio, km: km,
+          combustible: combustible, precio: precio
+        };
+        // Solo se tocan las fotos si se eligieron nuevas
+        if (fotos.length > 0) datos.fotos = fotos;
+        await db.collection('cars').doc(editandoId).update(datos);
+        status.textContent = 'Cambios guardados ✓';
+        status.className = 'status-msg status-ok';
+        salirModoEdicion();
+        limpiarFormulario();
+      } else {
+        await db.collection('cars').add({
+          marca: marca, modelo: modelo, anio: anio, km: km,
+          combustible: combustible, precio: precio, fotos: fotos,
+          creado: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        status.textContent = 'Auto agregado ✓';
+        status.className = 'status-msg status-ok';
+        limpiarFormulario();
+      }
     } catch (err) {
       console.error(err);
       status.textContent = 'No se pudo guardar. Probá de nuevo.';
@@ -243,6 +310,7 @@
       list.innerHTML = '';
       snapshot.forEach(function (doc) {
         const c = doc.data();
+        autosCache[doc.id] = c;
         const item = document.createElement('div');
         item.className = 'car-list-item';
         const primerFoto = (Array.isArray(c.fotos) && c.fotos[0]) || c.foto || null;
@@ -255,13 +323,23 @@
             '<strong>' + c.marca + ' ' + c.modelo + '</strong>' +
             '<span>' + c.anio + ' · ' + (c.km || '0') + ' km · $' + Number(c.precio || 0).toLocaleString('es-AR') + '</span>' +
           '</div>' +
-          '<button class="btn-danger" data-id="' + doc.id + '">Eliminar</button>';
+          '<div class="car-list-actions">' +
+            '<button class="btn-edit" data-edit-id="' + doc.id + '">Editar</button>' +
+            '<button class="btn-danger" data-id="' + doc.id + '">Eliminar</button>' +
+          '</div>';
         list.appendChild(item);
+      });
+      list.querySelectorAll('.btn-edit').forEach(function (b) {
+        b.addEventListener('click', function () {
+          entrarModoEdicion(b.getAttribute('data-edit-id'));
+        });
       });
       list.querySelectorAll('.btn-danger').forEach(function (b) {
         b.addEventListener('click', function () {
           if (confirm('¿Eliminar este auto del catálogo?')) {
-            db.collection('cars').doc(b.getAttribute('data-id')).delete();
+            const id = b.getAttribute('data-id');
+            if (id === editandoId) { salirModoEdicion(); limpiarFormulario(); }
+            db.collection('cars').doc(id).delete();
           }
         });
       });
