@@ -93,8 +93,8 @@
         </div>
         <div><label>Precio ($)</label><input id="f-precio" type="number" placeholder="14800000"></div>
       </div>
-      <label>Foto</label>
-      <input type="file" id="f-foto" accept="image/*">
+      <label>Fotos (podés elegir varias a la vez, hasta 5)</label>
+      <input type="file" id="f-foto" accept="image/*" multiple>
       <div style="margin-top:18px;">
         <button class="btn" id="add-btn">Agregar al catálogo</button>
       </div>
@@ -168,14 +168,14 @@
       reader.onload = function (e) {
         const img = new Image();
         img.onload = function () {
-          const maxAncho = 900;
+          const maxAncho = 800;
           const escala = Math.min(1, maxAncho / img.width);
           const canvas = document.createElement('canvas');
           canvas.width = img.width * escala;
           canvas.height = img.height * escala;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', 0.72));
+          resolve(canvas.toDataURL('image/jpeg', 0.65));
         };
         img.onerror = reject;
         img.src = e.target.result;
@@ -207,13 +207,14 @@
     status.className = 'status-msg';
 
     try {
-      let foto = null;
-      if (fotoInput.files && fotoInput.files[0]) {
-        foto = await comprimirImagen(fotoInput.files[0]);
+      let fotos = [];
+      if (fotoInput.files && fotoInput.files.length > 0) {
+        const archivos = Array.from(fotoInput.files).slice(0, 5);
+        fotos = await Promise.all(archivos.map(comprimirImagen));
       }
       await db.collection('cars').add({
         marca: marca, modelo: modelo, anio: anio, km: km,
-        combustible: combustible, precio: precio, foto: foto,
+        combustible: combustible, precio: precio, fotos: fotos,
         creado: firebase.firestore.FieldValue.serverTimestamp()
       });
       status.textContent = 'Auto agregado ✓';
@@ -244,8 +245,9 @@
         const c = doc.data();
         const item = document.createElement('div');
         item.className = 'car-list-item';
-        const fotoHtml = c.foto
-          ? '<img src="' + c.foto + '">'
+        const primerFoto = (Array.isArray(c.fotos) && c.fotos[0]) || c.foto || null;
+        const fotoHtml = primerFoto
+          ? '<img src="' + primerFoto + '">'
           : '<div class="no-photo"></div>';
         item.innerHTML =
           fotoHtml +

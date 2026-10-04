@@ -131,6 +131,20 @@
     position: relative;
   }
   .car-photo svg { width: 46%; height: auto; opacity: 0.55; }
+  .car-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+  .car-photo img.active { display: block; }
+  .photo-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(10,10,92,0.55); color: #fff; border: none;
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 15px; line-height: 1; padding: 0;
+  }
+  .photo-nav.prev { left: 8px; }
+  .photo-nav.next { right: 8px; }
+  .photo-dots { position: absolute; bottom: 8px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; }
+  .photo-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.55); }
+  .photo-dots span.active { background: #fff; }
   .car-year-tag {
     position: absolute; top: 12px; left: 12px;
     background: var(--navy); color: var(--white);
@@ -350,6 +364,43 @@
     return '<svg viewBox="0 0 64 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 28 L10 14 Q13 9 20 9 H44 Q51 9 54 14 L60 28" stroke="#0a0a5c" stroke-width="2.5" stroke-linejoin="round"/><rect x="2" y="26" width="60" height="8" rx="2" stroke="#0a0a5c" stroke-width="2.5"/><circle cx="16" cy="34" r="4.5" stroke="#0a0a5c" stroke-width="2.5" fill="#f6f7f9"/><circle cx="48" cy="34" r="4.5" stroke="#0a0a5c" stroke-width="2.5" fill="#f6f7f9"/></svg>';
   }
 
+  function getFotos(c) {
+    if (Array.isArray(c.fotos) && c.fotos.length > 0) return c.fotos;
+    if (c.foto) return [c.foto];
+    return [];
+  }
+
+  function buildFotosHtml(fotos, alt) {
+    if (fotos.length === 0) return carSvg();
+    let html = fotos.map(function (f, i) {
+      return '<img src="' + f + '" alt="' + alt + '" class="' + (i === 0 ? 'active' : '') + '">';
+    }).join('');
+    if (fotos.length > 1) {
+      html += '<button class="photo-nav prev" type="button" aria-label="Foto anterior">‹</button>' +
+              '<button class="photo-nav next" type="button" aria-label="Foto siguiente">›</button>' +
+              '<div class="photo-dots">' + fotos.map(function (_, i) {
+                return '<span class="' + (i === 0 ? 'active' : '') + '"></span>';
+              }).join('') + '</div>';
+    }
+    return html;
+  }
+
+  function activarCarrusel(photoDiv) {
+    const imgs = photoDiv.querySelectorAll('img');
+    const dots = photoDiv.querySelectorAll('.photo-dots span');
+    if (imgs.length <= 1) return;
+    let current = 0;
+    function mostrar(i) {
+      current = (i + imgs.length) % imgs.length;
+      imgs.forEach(function (im, idx) { im.classList.toggle('active', idx === current); });
+      dots.forEach(function (d, idx) { d.classList.toggle('active', idx === current); });
+    }
+    const prevBtn = photoDiv.querySelector('.photo-nav.prev');
+    const nextBtn = photoDiv.querySelector('.photo-nav.next');
+    if (prevBtn) prevBtn.addEventListener('click', function () { mostrar(current - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { mostrar(current + 1); });
+  }
+
   function renderCars(snapshot) {
     const grid = document.getElementById('catalogo-grid');
     if (snapshot.empty) {
@@ -360,18 +411,17 @@
     snapshot.forEach(function(doc) {
       const c = doc.data();
       const mensaje = encodeURIComponent('Hola, me interesa el ' + (c.marca || '') + ' ' + (c.modelo || '') + ' ' + (c.anio || ''));
-      const foto = c.foto
-        ? '<img src="' + c.foto + '" alt="' + (c.marca || '') + ' ' + (c.modelo || '') + '" style="width:100%; height:100%; object-fit:cover;">'
-        : carSvg();
+      const alt = (c.marca || '') + ' ' + (c.modelo || '');
+      const fotos = getFotos(c);
       const card = document.createElement('div');
       card.className = 'car-card';
       card.innerHTML =
         '<div class="car-photo">' +
           '<span class="car-year-tag">' + (c.anio || '') + '</span>' +
-          foto +
+          buildFotosHtml(fotos, alt) +
         '</div>' +
         '<div class="car-body">' +
-          '<h3>' + (c.marca || '') + ' ' + (c.modelo || '') + '</h3>' +
+          '<h3>' + alt + '</h3>' +
           '<div class="car-meta">' + (c.anio || '') + ' · ' + (c.km || '0') + ' km · ' + (c.combustible || '') + '</div>' +
           '<div class="car-price-row">' +
             '<span class="car-price">' + formatoPrecio(c.precio) + '</span>' +
@@ -379,6 +429,7 @@
           '</div>' +
         '</div>';
       grid.appendChild(card);
+      activarCarrusel(card.querySelector('.car-photo'));
     });
   }
 
